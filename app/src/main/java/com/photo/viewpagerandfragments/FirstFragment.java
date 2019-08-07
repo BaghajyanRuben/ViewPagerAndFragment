@@ -1,11 +1,14 @@
 package com.photo.viewpagerandfragments;
 
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.graphics.Canvas;
 import android.graphics.Rect;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -13,9 +16,13 @@ import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import java.util.List;
+
 public class FirstFragment extends Fragment {
 
 	private RecyclerView recyclerView;
+	private ListAdapter adapter;
+	private DBhelper dBhelper;
 
 	@Nullable
 	@Override
@@ -27,6 +34,8 @@ public class FirstFragment extends Fragment {
 	public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
 		super.onViewCreated(view, savedInstanceState);
 
+		dBhelper = new DBhelper(getActivity());
+
 		recyclerView =
 				view.findViewById(R.id.recycler_view);
 
@@ -36,13 +45,37 @@ public class FirstFragment extends Fragment {
 						false);
 		recyclerView.setLayoutManager(layoutManager);
 
-		ListAdapter adapter = new ListAdapter();
+		adapter = new ListAdapter();
 		recyclerView.setAdapter(adapter);
+
+
+		adapter.addAll(dBhelper.readAllFromDB());
 
 		ItemOffsetDecoration offsetDecoration =
 				new ItemOffsetDecoration((int) getResources()
 						.getDimension(R.dimen.item_margin));
 		recyclerView.addItemDecoration(offsetDecoration);
+
+
+		view.findViewById(R.id.add).setOnClickListener(new View.OnClickListener() {
+			@Override
+			public void onClick(View view) {
+//				AlertDialog.Builder builder =
+//						new AlertDialog.Builder(getActivity());
+
+
+				dBhelper.writeToDB("add new " + System.currentTimeMillis());
+
+				Note item = dBhelper.readLastFromDB();
+
+				if (item != null) {
+					adapter.add(item);
+				}
+
+				recyclerView.scrollToPosition(adapter.getItemCount() - 1);
+
+			}
+		});
 
 	}
 
