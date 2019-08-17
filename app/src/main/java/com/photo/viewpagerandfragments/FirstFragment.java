@@ -1,14 +1,11 @@
 package com.photo.viewpagerandfragments;
 
-import android.app.AlertDialog;
-import android.content.DialogInterface;
-import android.graphics.Canvas;
 import android.graphics.Rect;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -16,13 +13,23 @@ import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.photo.viewpagerandfragments.local.ToDoDB;
+import com.photo.viewpagerandfragments.local.entity.Note;
+
 import java.util.List;
 
-public class FirstFragment extends Fragment {
+public class FirstFragment extends Fragment implements ListAdapter.ItemClickListener {
 
 	private RecyclerView recyclerView;
 	private ListAdapter adapter;
 	private DBhelper dBhelper;
+	private ToDoDB toDoDB;
+
+	@Override
+	public void onCreate(@Nullable Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
+		toDoDB = ToDoDB.getInstance(getActivity());
+	}
 
 	@Nullable
 	@Override
@@ -45,11 +52,23 @@ public class FirstFragment extends Fragment {
 						false);
 		recyclerView.setLayoutManager(layoutManager);
 
-		adapter = new ListAdapter();
+		adapter = new ListAdapter(this);
 		recyclerView.setAdapter(adapter);
 
 
-		adapter.addAll(dBhelper.readAllFromDB());
+		new AsyncTask<Void, Void, List<Note>>() {
+			@Override
+			protected List<Note> doInBackground(Void... voids) {
+				return toDoDB.noteDAO().getAll();
+			}
+
+			@Override
+			protected void onPostExecute(List<Note> notes) {
+				adapter.addAll(notes);
+			}
+		}.execute();
+
+//		adapter.addAll(dBhelper.readAllFromDB());
 
 		ItemOffsetDecoration offsetDecoration =
 				new ItemOffsetDecoration((int) getResources()
@@ -63,25 +82,63 @@ public class FirstFragment extends Fragment {
 //				AlertDialog.Builder builder =
 //						new AlertDialog.Builder(getActivity());
 
+				new AsyncTask<Void, Note, Note>(){
 
-				dBhelper.writeToDB("add new " + System.currentTimeMillis());
+					@Override
+					protected Note doInBackground(Void... voids) {
+						Note note = new Note();
+						note.setNote("add new " + System.currentTimeMillis());
+						note.setId((int) toDoDB.noteDAO().insert(note));
+						return note;
+					}
 
-				Note item = dBhelper.readLastFromDB();
+					@Override
+					protected void onPostExecute(Note note) {
+						adapter.add(note);
+						recyclerView.scrollToPosition(adapter.getItemCount() - 1);
+					}
+				}.execute();
 
-				if (item != null) {
-					adapter.add(item);
-				}
+//				dBhelper.writeToDB("add new " + System.currentTimeMillis());
+//
+//				Note item = dBhelper.readLastFromDB();
+//
+//				if (item != null) {
+//					adapter.add(item);
+//				}
 
 				recyclerView.scrollToPosition(adapter.getItemCount() - 1);
 
 			}
 		});
 
+
+
 	}
 
 	@Override
 	public void onSaveInstanceState(@NonNull Bundle outState) {
 		super.onSaveInstanceState(outState);
+	}
+
+	@Override
+	public void onItemClicked(int position, ClickAction action) {
+		switch (action){
+			case ACTION_ITEM:
+				break;
+			case ACTION_DELETE:
+				Note note = adapter.getItem(position);
+				adapter.remove(position);
+				new AsyncTask<Note, Void, Void>() {
+					@Override
+					protected Void doInBackground(Note... notes) {
+						toDoDB.noteDAO().delete(notes[0]);
+						return null;
+					}
+				}.execute(note);
+//				dBhelper.removeFromDB(note.getId());
+				break;
+		}
 	}
 
 	static class ItemOffsetDecoration extends RecyclerView.ItemDecoration {

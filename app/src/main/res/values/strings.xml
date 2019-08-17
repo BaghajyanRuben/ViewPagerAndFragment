@@ -2,4 +2,8 @@
     <string name="app_name">ViewPagerAndFragments</string>
     <string name="dialog_title">Dialog Title</string>
     <string name="dialog_message">Dialog Message akjshfjkahsflkhaslkfhlshflkslk lahflhaslfhlask lkahsflkashflkh lk hlkh lkh</string>
+    <string name="title_remove">Are you sure?</string>
+    <string name="description_remove">You want to remove this item</string>
+    <string name="gen_yes">Yes</string>
+    <string name="gen_cancel">Cancel</string>
 </resources>

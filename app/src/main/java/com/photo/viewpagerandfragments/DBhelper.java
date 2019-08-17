@@ -6,6 +6,8 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 
+import com.photo.viewpagerandfragments.local.entity.Note;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -63,7 +65,7 @@ public class DBhelper extends SQLiteOpenHelper {
 		db.close();
 	}
 
-	public  Note readFromDB(int id){
+	public Note readFromDB(int id){
 
 		String query = "SELECT FROM"
 				+ TABLE_NAME
@@ -149,8 +151,8 @@ public class DBhelper extends SQLiteOpenHelper {
 
 		SQLiteDatabase db = getWritableDatabase();
 
-		db.delete(TABLE_NAME, COLUMN_ID,
-				new String[]{" = ? " + id});
+		db.delete(TABLE_NAME, COLUMN_ID + "=?",
+				new String[]{String.valueOf(id)});
 
 		db.close();
 
