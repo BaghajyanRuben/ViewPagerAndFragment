@@ -92,6 +92,8 @@ public class ListAdapter extends RecyclerView.Adapter<ListAdapter.MyViewHolder> 
 			imageView = itemView.findViewById(R.id.im_avatar);
 			btnRemove = itemView.findViewById(R.id.btn_remove);
 
+
+
 			btnRemove.setOnClickListener(new View.OnClickListener() {
 				@Override
 				public void onClick(View view) {
@@ -113,6 +115,13 @@ public class ListAdapter extends RecyclerView.Adapter<ListAdapter.MyViewHolder> 
 
 					AlertDialog dialog = builder.create();
 					 dialog.show();
+				}
+			});
+
+			itemView.setOnClickListener(new View.OnClickListener() {
+				@Override
+				public void onClick(View view) {
+					itemClickListener.onItemClicked(getAdapterPosition(), ClickAction.ACTION_ITEM);
 				}
 			});
 		}

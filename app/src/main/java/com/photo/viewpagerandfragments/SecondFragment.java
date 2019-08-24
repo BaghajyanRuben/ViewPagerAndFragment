@@ -1,6 +1,14 @@
 package com.photo.viewpagerandfragments;
 
 import android.Manifest;
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.net.Uri;
@@ -14,8 +22,10 @@ import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.app.NotificationCompat;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -28,6 +38,7 @@ public class SecondFragment extends Fragment implements ListAdapter.ItemClickLis
 
 	private RecyclerView recyclerView;
 	private ContactAdapter adapter;
+	private BroadcastReceiver itemRemoveReceiver;
 
 	@Nullable
 	@Override
@@ -64,6 +75,22 @@ public class SecondFragment extends Fragment implements ListAdapter.ItemClickLis
 
 		loadContacts();
 
+		itemRemoveReceiver = new BroadcastReceiver() {
+			@Override
+			public void onReceive(Context context, Intent intent) {
+				if (intent == null
+						|| !Constants.ACTION_ITEM_REMOVE.equals(intent.getAction())){
+					return;
+				}
+
+				String noteName = intent.getStringExtra(Constants.KEY_NAME);
+				sendNotification(context, noteName);
+			}
+		};
+
+		LocalBroadcastManager.getInstance(getActivity())
+				.registerReceiver(itemRemoveReceiver, new IntentFilter(Constants.ACTION_ITEM_REMOVE));
+
 	}
 
 	@Override
@@ -79,12 +106,12 @@ public class SecondFragment extends Fragment implements ListAdapter.ItemClickLis
 	public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
 		super.onRequestPermissionsResult(requestCode, permissions, grantResults);
 
-		if (grantResults.length > 1){
+		if (grantResults.length > 1) {
 			loadContacts();
 		}
 	}
 
-	private void loadContacts(){
+	private void loadContacts() {
 		if (ContextCompat.checkSelfPermission(getActivity(), Manifest.permission.READ_CONTACTS) != PackageManager.PERMISSION_GRANTED
 				&& ContextCompat.checkSelfPermission(getActivity(), Manifest.permission.WRITE_CONTACTS) != PackageManager.PERMISSION_GRANTED) {
 			if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -96,7 +123,17 @@ public class SecondFragment extends Fragment implements ListAdapter.ItemClickLis
 
 	}
 
-	private List<Contact> readContacts(){
+	@Override
+	public void onDestroy() {
+		if (itemRemoveReceiver != null){
+			LocalBroadcastManager
+					.getInstance(getActivity())
+					.unregisterReceiver(itemRemoveReceiver);
+		}
+		super.onDestroy();
+	}
+
+	private List<Contact> readContacts() {
 		List<Contact> contacts = new ArrayList<>();
 
 		Uri contactURI = ContactsContract.CommonDataKinds.Phone.CONTENT_URI;
@@ -119,7 +156,7 @@ public class SecondFragment extends Fragment implements ListAdapter.ItemClickLis
 				null,
 				orderDisplayName);
 
-		if (contactCursor == null){
+		if (contactCursor == null) {
 			return contacts;
 		}
 
@@ -128,7 +165,7 @@ public class SecondFragment extends Fragment implements ListAdapter.ItemClickLis
 
 		contactCursor.moveToFirst();
 
-		while (contactCursor.moveToNext()){
+		while (contactCursor.moveToNext()) {
 			String name = contactCursor.getString(displayNameIndex);
 			String phone = contactCursor.getString(phoneNumberIndex);
 
@@ -142,10 +179,61 @@ public class SecondFragment extends Fragment implements ListAdapter.ItemClickLis
 
 	@Override
 	public void onItemClicked(int position, ClickAction action) {
-		switch (action){
+		switch (action) {
 			case ACTION_ITEM:
 				adapter.select(position);
 				break;
 		}
+	}
+
+
+	public void sendNotification(Context context, String noteName) {
+
+		String title = context.getString(R.string.notification_title);
+		String description = context.getString(R.string.notification_description, noteName);
+
+
+		String name = context.getString(R.string.channel_name);
+		String id = Constants.CHANNEL_ID;
+
+		Intent intent;
+		PendingIntent pendingIntent;
+		NotificationCompat.Builder builder;
+
+		NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+
+
+		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+			int importance = NotificationManager.IMPORTANCE_HIGH;
+			NotificationChannel mChannel = notificationManager.getNotificationChannel(id);
+			if (mChannel == null) {
+				mChannel = new NotificationChannel(id, name, importance);
+				mChannel.setDescription(description);
+				notificationManager.createNotificationChannel(mChannel);
+			}
+		}
+
+		builder = new NotificationCompat.Builder(context, Constants.CHANNEL_ID);
+
+		intent = new Intent(context, MainActivity.class);
+		intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+		pendingIntent = PendingIntent.getActivity(
+				context,
+				0,
+				intent,
+				PendingIntent.FLAG_UPDATE_CURRENT);
+		builder.setContentTitle(title)
+				.setSmallIcon(R.mipmap.ic_launcher)
+				.setContentText(description)
+				.setDefaults(Notification.DEFAULT_ALL)
+				.setAutoCancel(true)
+				.setContentIntent(pendingIntent)
+				.setTicker(context.getString(R.string.app_name))
+				.setVibrate(new long[]{1000, 200, 3000})
+				.setPriority(Notification.PRIORITY_HIGH);
+
+
+		Notification notification = builder.build();
+		notificationManager.notify(Constants.NOTIFICATION_ID, notification);
 	}
 }

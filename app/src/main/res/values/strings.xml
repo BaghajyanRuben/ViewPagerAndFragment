@@ -6,4 +6,7 @@
     <string name="description_remove">You want to remove this item</string>
     <string name="gen_yes">Yes</string>
     <string name="gen_cancel">Cancel</string>
+    <string name="channel_name">My App</string>
+    <string name="notification_title">Item was removed</string>
+    <string name="notification_description">%s note was removed</string>
 </resources>

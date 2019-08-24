@@ -1,8 +1,14 @@
 package com.photo.viewpagerandfragments;
 
+import android.content.Context;
+import android.content.Intent;
 import android.graphics.Rect;
+import android.icu.util.ValueIterator;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.VibrationEffect;
+import android.os.Vibrator;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -10,6 +16,7 @@ import android.view.ViewGroup;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -125,9 +132,19 @@ public class FirstFragment extends Fragment implements ListAdapter.ItemClickList
 	public void onItemClicked(int position, ClickAction action) {
 		switch (action){
 			case ACTION_ITEM:
+
+
+
+//				Vibrator vibrator = (Vibrator) getActivity().getSystemService(Context.VIBRATOR_SERVICE);
+//
+//				if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+//					vibrator.vibrate(VibrationEffect.createOneShot(2000l, 0));
+//				} else {
+//					vibrator.vibrate(new long[]{1000, 2000, 3000}, -1);
+//				}
 				break;
 			case ACTION_DELETE:
-				Note note = adapter.getItem(position);
+				final Note note = adapter.getItem(position);
 				adapter.remove(position);
 				new AsyncTask<Note, Void, Void>() {
 					@Override
@@ -135,8 +152,17 @@ public class FirstFragment extends Fragment implements ListAdapter.ItemClickList
 						toDoDB.noteDAO().delete(notes[0]);
 						return null;
 					}
+
+					@Override
+					protected void onPostExecute(Void aVoid) {
+						Intent data = new Intent(Constants.ACTION_ITEM_REMOVE);
+						data.putExtra(Constants.KEY_NAME, note.getNote());
+						//local broadcast
+						LocalBroadcastManager.getInstance(getActivity()).sendBroadcast(data);
+						// global broadcast
+//						getActivity().sendBroadcast(data);
+					}
 				}.execute(note);
-//				dBhelper.removeFromDB(note.getId());
 				break;
 		}
 	}
